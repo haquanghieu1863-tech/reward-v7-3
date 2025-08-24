@@ -4,3 +4,4 @@ dist/
 .prisma/
 prisma/dev.db
 .vscode/
+.vercel
