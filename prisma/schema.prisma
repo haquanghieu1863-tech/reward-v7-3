@@ -1,0 +1,75 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+/**
+ * Dùng 1 trong 2 datasource dưới đây:
+ * - Nếu dùng Postgres (trên Vercel/Render, v.v.) thì để block "postgresql" và set .env: DATABASE_URL
+ * - Nếu thử local nhanh thì dùng sqlite (tạo file dev.db trong prisma/)
+ */
+
+// ---- DÙNG POSTGRES ----
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/*
+// ---- DÙNG SQLITE (LOCAL) ----
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+*/
+
+enum TxType {
+  ad_view
+  bonus
+  withdraw
+}
+
+model User {
+  id        String        @id @default(uuid())
+  email     String        @unique
+  password  String
+  role      String        @default("user")
+  points    Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  resets    ResetToken[]
+  txs       Transaction[]
+}
+
+model ResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Settings {
+  id        Int      @id @default(1)
+  json      Json
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id        String  @id @default(uuid())
+  userId    String
+  type      TxType
+  amount    Int
+  note      String? // mô tả giao dịch
+  createdAt DateTime @default(now())
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+}

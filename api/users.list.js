@@ -1,0 +1,6 @@
+import prisma from '../_db.js';import {ok,bad} from '../_json.js';import jwt from 'jsonwebtoken';import {JWT_SECRET} from '../_env.js'
+export default async (req,res)=>{ try{ const auth=req.headers.authorization||''; const token=auth.replace(/^Bearer\s+/i,''); const me=jwt.verify(token,JWT_SECRET)
+ const meUser=await prisma.user.findUnique({where:{id:me.uid}}); if(!meUser||meUser.role!=='admin') return bad(res,403,'Forbidden')
+ const url=new URL(req.url,'http://x'); const q=url.searchParams.get('q')||''; const page=Math.max(1,parseInt(url.searchParams.get('page')||'1',10)); const size=Math.min(100,Math.max(1,parseInt(url.searchParams.get('pageSize')||'10',10)))
+ const where=q?{email:{contains:q,mode:'insensitive'}}:{}; const [total,items]=await Promise.all([prisma.user.count({where}), prisma.user.findMany({where,orderBy:{createdAt:'desc'},skip:(page-1)*size,take:size,select:{id:true,email:true,role:true,points:true,createdAt:true}})])
+ return ok(res,{total,items}) } catch(e){ return bad(res,401,'Unauthorized') } }
